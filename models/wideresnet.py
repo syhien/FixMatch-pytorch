@@ -110,11 +110,11 @@ class WideResNet(nn.Module):
         out = self.conv1(x)
         out = self.block1(out)
         out = self.block2(out)
-        features = self.block3(out)
-        out = self.relu(self.bn1(features))
+        out = self.block3(out)
+        out = self.relu(self.bn1(out))
         out = F.adaptive_avg_pool2d(out, 1)
-        out = out.view(-1, self.channels)
-        return self.fc(out), features
+        features = out.view(-1, self.channels)
+        return self.fc(features), features
 
 
 def build_wideresnet(depth, widen_factor, dropout, num_classes):
