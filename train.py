@@ -357,10 +357,11 @@ def train(args, labeled_trainloader, unlabeled_trainloader, test_loader,
             inputs = interleave(
                 torch.cat((inputs_x, inputs_u_w, inputs_u_s)), 2*args.mu+1).to(args.device)
             targets_x = targets_x.to(args.device)
-            logits = model(inputs)
+            logits, features = model(inputs)
             logits = de_interleave(logits, 2*args.mu+1)
             logits_x = logits[:batch_size]
             logits_u_w, logits_u_s = logits[batch_size:].chunk(2)
+            features_u_w, features_u_s = features[batch_size:].chunk(2)
             del logits
 
             Lx = F.cross_entropy(logits_x, targets_x, reduction='mean')
@@ -371,8 +372,10 @@ def train(args, labeled_trainloader, unlabeled_trainloader, test_loader,
 
             Lu = (F.cross_entropy(logits_u_s, targets_u,
                                   reduction='none') * mask).mean()
+            
+            Lcos = (F.cosine_similarity(features_u_w, features_u_s) * mask).mean() + 1
 
-            loss = Lx + args.lambda_u * Lu
+            loss = Lx + args.lambda_u * (Lu + Lcos)
 
             if args.amp:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
